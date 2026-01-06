@@ -3,7 +3,7 @@ import "./globals.css";
 import { Inter, JetBrains_Mono } from "next/font/google";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://gg.qz-l.com"),
+  metadataBase: new URL("https://gemini-guess.qz-l.com"),
   title: "Gemini Guess",
   description:
     "an open-ended game where players challenge Gemini 3 to guess any idea via text, voice, or video, replaying its deep, multi-turn reasoning and thought process.",
@@ -14,20 +14,20 @@ export const metadata: Metadata = {
       "an open-ended game where players challenge Gemini 3 to guess any idea via text, voice, or video, replaying its deep, multi-turn reasoning and thought process.",
     images: [
       {
-        url: "/gemini_guess.jpg",
+        url: "/gemini_guess.png",
         width: 480,
         height: 360,
       },
     ],
     siteName: "Gemini Guess",
     type: "website",
-    url: "https://gg.qz-l.com",
+    url: "https://gemini-guess.qz-l.com",
   },
   twitter: {
     card: "summary_large_image",
     title: "Gemini Guess",
     description: "Smart short links with safety preview and AI analysis.",
-    images: ["/gemini_guess.jpg"],
+    images: ["/gemini_guess.png"],
   },
 };
 

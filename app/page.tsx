@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { MediaCapture } from "./components/MediaCapture";
 import { ReasoningPanel } from "./components/ReasoningPanel";
 import { processTurn } from "./services/geminiService";
@@ -175,6 +176,16 @@ const App = () => {
                 Start New Challenge
                 <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 rounded-2xl transition-opacity"></div>
               </button>
+
+              <div className="mt-6">
+                <Image
+                  src="/gemini-guess.png"
+                  alt="Gemini Guess Game Idea"
+                  width={384} // adjust size as needed
+                  height={256} // adjust size as needed
+                  className="rounded-2xl shadow-lg"
+                />
+              </div>
             </div>
           ) : (
             <div className="flex-1 flex flex-col min-h-0 bg-slate-900/40 rounded-3xl border border-slate-800/50 backdrop-blur-sm">
