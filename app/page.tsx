@@ -84,12 +84,14 @@ const App = () => {
       }));
 
       const response: GeminiResponse = await processTurn(apiHistory, input);
+      console.log("ai res", response);
 
       const geminiTurn: Turn = {
         role: "gemini",
-        content: response.guess
-          ? `Is it a... ${response.guess}?`
-          : response.question,
+        content:
+          response.guess && response.guess !== "null"
+            ? `Is it a... ${response.guess}?`
+            : response.question,
         type: "text",
         timestamp: Date.now(),
         reasoning: response.thoughtProcess,
