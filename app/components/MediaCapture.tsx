@@ -1,16 +1,16 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 
-interface MediaCaptureProps {
+export interface MediaCaptureProps {
   onCaptureFrame: (base64: string) => void;
   isRecording: boolean;
   onVoiceData: (blob: Blob) => void;
 }
 
-export const MediaCapture: React.FC<MediaCaptureProps> = ({
+export const MediaCapture = ({
   onCaptureFrame,
   isRecording,
   onVoiceData,
-}) => {
+}: MediaCaptureProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);

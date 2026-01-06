@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { GeminiResponse } from "@/types";
 
 // ❗ Server-only env access
-const apiKey = process.env.API_KEY;
+const apiKey = process.env.GEMINI_API_KEY;
 
 if (!apiKey) {
   throw new Error("Missing API_KEY environment variable");
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const { history = [], input, modelName = "gemini-3-pro-preview" } = body;
+    const { history = [], input, modelName = "gemini-3-flash-preview" } = body;
 
     const parts: any[] = [];
 
@@ -91,7 +91,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(parsed);
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-
     return NextResponse.json(
       { error: "Failed to process Gemini turn" },
       { status: 500 },

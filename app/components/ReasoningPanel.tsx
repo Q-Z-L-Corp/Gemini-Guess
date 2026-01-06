@@ -1,14 +1,12 @@
-import React from "react";
-
-interface ReasoningPanelProps {
+export interface ReasoningPanelProps {
   reasoning: string;
   confidence: number;
 }
 
-export const ReasoningPanel: React.FC<ReasoningPanelProps> = ({
+export const ReasoningPanel = ({
   reasoning,
   confidence,
-}) => {
+}: ReasoningPanelProps) => {
   return (
     <div className="h-full bg-slate-900 border-l border-slate-800 flex flex-col">
       <div className="p-4 border-b border-slate-800 flex items-center justify-between">

@@ -1,27 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MediaCapture } from "./components/MediaCapture";
 import { ReasoningPanel } from "./components/ReasoningPanel";
 import { processTurn } from "./services/geminiService";
 import { GameState, Turn, GeminiResponse } from "../types";
 
-/**
- * 
- * @returns If you want, next I can help you add:
-
-🎮 Hard 20-turn enforcement
-
-🔐 Per-user session memory
-
-📉 Confidence-based auto-guess
-
-🧠 Difficulty scaling
-
-🚦 Rate limiting (edge-safe)
-
- */
-const App: React.FC = () => {
+const App = () => {
   const [gameState, setGameState] = useState<GameState>({
     status: "idle",
     rounds: 0,
