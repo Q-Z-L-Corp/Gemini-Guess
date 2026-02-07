@@ -138,9 +138,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return NextResponse.json(
-      { error: "Failed to process Gemini turn" },
-      { status: 500 },
-    );
+
+    // Extract a user-friendly message from the Gemini error
+    let message = "Failed to process Gemini turn.";
+    const status = error?.status || error?.response?.status || 500;
+
+    if (status === 429) {
+      // Parse retry delay if available
+      const retryMatch = error?.message?.match(/retry in ([\d.]+s)/i);
+      const retryHint = retryMatch
+        ? ` Try again in ~${retryMatch[1]}.`
+        : " Please wait a moment and try again.";
+      message = `Rate limit reached — you've hit the free-tier quota for this model.${retryHint}`;
+    } else if (error?.message) {
+      message = error.message;
+    }
+
+    return NextResponse.json({ error: message }, { status });
   }
 }

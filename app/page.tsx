@@ -125,19 +125,36 @@ const App = () => {
       }));
       setConfidence(response.reasoningConfidence);
       setInputText("");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      // Add error message to chat
+      // Show the actual error to the user
+      const errorMsg =
+        err?.message?.replace(/^Gemini API failed:\s*/, "") || String(err);
+      let displayMsg: string;
+      let rateLimited = false;
+      try {
+        const parsed = JSON.parse(errorMsg);
+        displayMsg = parsed.error || errorMsg;
+      } catch {
+        displayMsg = errorMsg;
+      }
+      if (
+        displayMsg.toLowerCase().includes("rate limit") ||
+        displayMsg.toLowerCase().includes("quota") ||
+        errorMsg.includes("429")
+      ) {
+        rateLimited = true;
+      }
       setGameState((prev) => ({
         ...prev,
         history: [
           ...prev.history,
           {
             role: "gemini",
-            content:
-              "Sorry, I encountered an error processing that clue. Please try again.",
+            content: `⚠️ ${displayMsg}`,
             type: "text",
             timestamp: Date.now(),
+            isRateLimited: rateLimited,
           },
         ],
       }));
@@ -315,6 +332,32 @@ const App = () => {
                       <p className="text-base leading-relaxed">
                         {turn.content}
                       </p>
+                      {turn.isRateLimited && (
+                        <a
+                          href={
+                            process.env.NEXT_PUBLIC_DONATE_URL ||
+                            "https://donate.stripe.com/aFa14gb9y44b9JBdOl6c004"
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 flex items-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-indigo-500/20 w-fit"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                            />
+                          </svg>
+                          Support this project — help us upgrade!
+                        </a>
+                      )}
                       {turn.isGuess && (
                         <div className="mt-3 flex gap-2">
                           <button

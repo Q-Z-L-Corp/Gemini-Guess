@@ -9,6 +9,8 @@ export interface Turn {
   imageData?: string;
   /** Base64 audio data for voice clues */
   audioData?: string;
+  /** Whether this message is a rate-limit error */
+  isRateLimited?: boolean;
 }
 
 export interface GameState {
