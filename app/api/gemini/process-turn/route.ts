@@ -39,11 +39,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const {
-      history = [],
-      input,
-      modelName = "gemini-2.5-flash-preview-05-20",
-    } = body;
+    const { history = [], input, modelName = "gemini-3-flash-preview" } = body;
 
     const parts: any[] = [];
 
