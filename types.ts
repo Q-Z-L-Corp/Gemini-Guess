@@ -5,6 +5,10 @@ export interface Turn {
   timestamp: number;
   reasoning?: string;
   isGuess?: boolean;
+  /** Base64 image data for image/video clues */
+  imageData?: string;
+  /** Base64 audio data for voice clues */
+  audioData?: string;
 }
 
 export interface GameState {
@@ -20,7 +24,9 @@ export interface GeminiResponse {
   question: string;
   guess?: string;
   isCorrectGuess: boolean;
-  thoughtProcess: string;
+  reasoningSummary: string;
   reasoningConfidence: number;
   giveUp?: boolean;
+  /** Extracted thinking/chain-of-thought from Gemini's thinking model */
+  thoughtProcess?: string;
 }

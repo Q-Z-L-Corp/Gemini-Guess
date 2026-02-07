@@ -17,6 +17,8 @@ A human player is thinking of an idea, object, or concept.
 Your goal is to guess it as quickly and accurately as possible.
 
 You will receive clues in text, transcribed voice, or as image frames (video).
+When you receive an audio clip, listen to it carefully for any spoken words, sounds, or contextual clues.
+When you receive an image, analyze it carefully for any visual clues about what the player is thinking of.
 You MUST respond with a JSON object.
 
 DO NOT reveal chain-of-thought.
@@ -37,7 +39,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const { history = [], input, modelName = "gemini-3-flash-preview" } = body;
+    const {
+      history = [],
+      input,
+      modelName = "gemini-2.5-flash-preview-05-20",
+    } = body;
 
     const parts: any[] = [];
 
@@ -52,7 +58,26 @@ export async function POST(req: NextRequest) {
           data: input.image,
         },
       });
-      parts.push({ text: "(User provided an image/video frame as a clue)" });
+      parts.push({
+        text: "(The user is showing you a visual clue via their camera. Analyze this image carefully to help you guess what they're thinking of.)",
+      });
+    }
+
+    if (input?.audio) {
+      parts.push({
+        inlineData: {
+          mimeType: "audio/webm",
+          data: input.audio,
+        },
+      });
+      parts.push({
+        text: "(The user recorded a voice clue. Listen carefully to what they said and use it as a clue to guess what they're thinking of.)",
+      });
+    }
+
+    // If no parts were added (shouldn't happen), add a fallback
+    if (parts.length === 0) {
+      parts.push({ text: "(The user provided a clue but it was empty.)" });
     }
 
     const contents = [
@@ -85,10 +110,36 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const text = response.text ?? "{}";
-    const parsed = JSON.parse(text) as GeminiResponse;
+    // Extract thinking/reasoning from the response parts
+    let thoughtProcess = "";
+    try {
+      const candidate = response.candidates?.[0];
+      if (candidate?.content?.parts) {
+        const thinkingParts = candidate.content.parts.filter(
+          (p: any) => p.thought === true,
+        );
+        if (thinkingParts.length > 0) {
+          thoughtProcess = thinkingParts.map((p: any) => p.text).join("\n");
+        }
+      }
+    } catch {
+      // If thinking extraction fails, continue without it
+    }
 
-    return NextResponse.json(parsed);
+    const text = response.text ?? "{}";
+    const parsed = JSON.parse(text);
+
+    const result: GeminiResponse = {
+      question: parsed.question || "",
+      guess: parsed.guess,
+      isCorrectGuess: parsed.isCorrectGuess || false,
+      reasoningSummary: parsed.reasoningSummary || "",
+      reasoningConfidence: parsed.reasoningConfidence || 0,
+      giveUp: parsed.giveUp || false,
+      thoughtProcess: thoughtProcess || parsed.reasoningSummary || "",
+    };
+
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     return NextResponse.json(

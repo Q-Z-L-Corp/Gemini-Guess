@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { MediaCapture } from "./components/MediaCapture";
 import { ReasoningPanel } from "./components/ReasoningPanel";
@@ -59,16 +59,26 @@ const App = () => {
 
     setIsLoading(true);
 
-    // Add user turn to history
+    // Determine display content and type
+    let displayContent = input.text || "";
+    let turnType: Turn["type"] = "text";
+
+    if (input.image) {
+      turnType = "video";
+      displayContent = input.text || "📷 Shared a visual clue";
+    } else if (input.audio) {
+      turnType = "voice";
+      displayContent = input.text || "🎤 Shared a voice clue";
+    }
+
+    // Add user turn to history with media data for previews
     const userTurn: Turn = {
       role: "user",
-      content:
-        input.text ||
-        (input.image
-          ? "User shared a visual clue."
-          : "User shared a voice clue."),
-      type: input.image ? "video" : input.audio ? "voice" : "text",
+      content: displayContent,
+      type: turnType,
       timestamp: Date.now(),
+      imageData: input.image,
+      audioData: input.audio,
     };
 
     setGameState((prev) => ({
@@ -78,7 +88,7 @@ const App = () => {
     }));
 
     try {
-      // Map history for API
+      // Map history for API — only send text parts (don't re-send old media)
       const apiHistory = gameState.history.map((h) => ({
         role: h.role === "user" ? "user" : "model",
         parts: [{ text: h.content }],
@@ -95,14 +105,17 @@ const App = () => {
             : response.question,
         type: "text",
         timestamp: Date.now(),
-        reasoning: response.thoughtProcess,
-        isGuess: !!response.guess,
+        reasoning: response.thoughtProcess || response.reasoningSummary,
+        isGuess: !!(response.guess && response.guess !== "null"),
       };
 
       setGameState((prev) => ({
         ...prev,
         history: [...prev.history, geminiTurn],
-        currentReasoning: response.thoughtProcess,
+        currentReasoning:
+          response.thoughtProcess ||
+          response.reasoningSummary ||
+          prev.currentReasoning,
         lastGuess: response.guess || prev.lastGuess,
         status: response.isCorrectGuess
           ? "won"
@@ -114,15 +127,49 @@ const App = () => {
       setInputText("");
     } catch (err) {
       console.error(err);
+      // Add error message to chat
+      setGameState((prev) => ({
+        ...prev,
+        history: [
+          ...prev.history,
+          {
+            role: "gemini",
+            content:
+              "Sorry, I encountered an error processing that clue. Please try again.",
+            type: "text",
+            timestamp: Date.now(),
+          },
+        ],
+      }));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const onVoiceData = async (blob: Blob) => {
-    // In a real app, we'd transcribe this first. For this demo, we'll notify Gemini it's a voice clue.
-    handleSendTurn({ text: "User gave a vocal clue." });
-  };
+  // Keep handleSendTurn in a ref so child callbacks always call the latest version
+  const handleSendTurnRef = useRef(handleSendTurn);
+  handleSendTurnRef.current = handleSendTurn;
+
+  /** Convert audio blob to base64 and send as audio clue */
+  const onVoiceData = useCallback(async (blob: Blob) => {
+    try {
+      const arrayBuffer = await blob.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(arrayBuffer).reduce(
+          (data, byte) => data + String.fromCharCode(byte),
+          "",
+        ),
+      );
+      handleSendTurnRef.current({ audio: base64 });
+    } catch (err) {
+      console.error("Error converting audio:", err);
+    }
+  }, []);
+
+  /** Capture frame from camera and send as image clue */
+  const onCaptureFrame = useCallback((base64: string) => {
+    handleSendTurnRef.current({ image: base64 });
+  }, []);
 
   return (
     <div className="flex h-screen w-full bg-slate-950 overflow-hidden selection:bg-indigo-500/30">
@@ -209,7 +256,62 @@ const App = () => {
                         <span className="text-[10px] opacity-60 font-bold uppercase tracking-widest">
                           {turn.role}
                         </span>
+                        {turn.type === "voice" && (
+                          <span className="text-[10px] opacity-60 font-bold uppercase tracking-widest text-pink-300">
+                            🎤 Voice
+                          </span>
+                        )}
+                        {turn.type === "video" && (
+                          <span className="text-[10px] opacity-60 font-bold uppercase tracking-widest text-cyan-300">
+                            📷 Visual
+                          </span>
+                        )}
                       </div>
+
+                      {/* Image preview for visual clues */}
+                      {turn.imageData && (
+                        <div className="mb-3 rounded-lg overflow-hidden border border-white/10">
+                          <img
+                            src={`data:image/jpeg;base64,${turn.imageData}`}
+                            alt="Visual clue"
+                            className="w-full max-w-[280px] h-auto rounded-lg"
+                          />
+                        </div>
+                      )}
+
+                      {/* Audio indicator for voice clues */}
+                      {turn.audioData && (
+                        <div className="mb-3 flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
+                          <svg
+                            className="w-5 h-5 text-pink-300"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                            />
+                          </svg>
+                          <div className="flex gap-0.5 items-end h-4">
+                            {[3, 5, 3, 7, 4, 6, 3, 5, 7, 4, 3, 6, 5, 3].map(
+                              (h, i) => (
+                                <div
+                                  key={i}
+                                  className="w-0.5 bg-pink-300/60 rounded-full"
+                                  style={{ height: `${h * 2}px` }}
+                                />
+                              ),
+                            )}
+                          </div>
+                          <span className="text-xs text-pink-200/70 ml-1">
+                            Voice clue sent
+                          </span>
+                        </div>
+                      )}
+
                       <p className="text-base leading-relaxed">
                         {turn.content}
                       </p>
@@ -254,10 +356,21 @@ const App = () => {
                     <button
                       onMouseDown={() => setIsRecording(true)}
                       onMouseUp={() => setIsRecording(false)}
+                      onMouseLeave={() => isRecording && setIsRecording(false)}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        setIsRecording(true);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        setIsRecording(false);
+                      }}
+                      disabled={isLoading}
+                      title="Hold to record a voice clue"
                       className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
                         isRecording
-                          ? "bg-red-600 text-white animate-pulse"
-                          : "bg-slate-800 text-slate-400 hover:text-indigo-400"
+                          ? "bg-red-600 text-white animate-pulse scale-110"
+                          : "bg-slate-800 text-slate-400 hover:text-indigo-400 disabled:opacity-50"
                       }`}
                     >
                       <svg
@@ -319,18 +432,28 @@ const App = () => {
       <aside className="w-96 flex flex-col border-l border-slate-800">
         <div className="p-4 h-1/2">
           <MediaCapture
-            onCaptureFrame={(base64) => handleSendTurn({ image: base64 })}
+            onCaptureFrame={onCaptureFrame}
             isRecording={isRecording}
             onVoiceData={onVoiceData}
           />
           <div className="mt-4 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-            <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1">
-              Visual Intelligence
+            <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">
+              How to give clues
             </h3>
-            <p className="text-xs text-slate-400">
-              Click "Show Clue" while holding an object or showing a visual hint
-              to Gemini.
-            </p>
+            <ul className="text-xs text-slate-400 space-y-1.5">
+              <li className="flex items-center gap-2">
+                <span className="text-indigo-400">⌨️</span> Type a text clue
+                below
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-pink-400">🎤</span> Hold the mic button to
+                record voice
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="text-cyan-400">📷</span> Hover camera and click
+                "Show Clue"
+              </li>
+            </ul>
           </div>
         </div>
         <div className="flex-1 min-h-0">
