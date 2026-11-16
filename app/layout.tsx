@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://gemini-guess.qz-l.com"),
@@ -50,6 +51,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        {/* Monetag in-page push tag */}
+        <Script id="monetag-in-page-push" strategy="afterInteractive">
+          {`(function(s){s.dataset.zone='12172421',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`}
+        </Script>
+      </head>
       <body className="bg-slate-900 text-slate-50 font-sans antialiased">
         {children}
       </body>
