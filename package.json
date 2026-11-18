@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.34.0",
+    "@qzlcorp/react": "^0.2.0-beta.0",
     "next": "^16.1.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
